@@ -41,21 +41,10 @@ Instalação no backend:
 
 ## Como rodar localmente
 
-Clone o repositório
-git clone https://github.com/kiellzz/slowed-reverb-maker.git
-
-Instale as dependencias no backend
-cd backend
-npm install
-
-Ajuste o caminho no FFmpeg no server.js, se estiver no Windows
-const ffmpegPath = "C:\\ffmpeg\\bin\\ffmpeg.exe";
-
-Inicie o servidor
-node server.js
-
-Abra no navegador
-http://localhost:3000
+1. Clone o repositório
+2. Instale as dependências
+3. Inicie o servidor
+4. Acesse http://localhost:3000
 
 
 
