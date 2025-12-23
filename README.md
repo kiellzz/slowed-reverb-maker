@@ -1,6 +1,6 @@
 # 🎵 Slowed + Reverb Maker
 
-> Transforme qualquer áudio em versão slowed. Projeto em **fase inicial** para aprendizado e testes.
+> Transforme qualquer áudio em versão slowed + reverb. Projeto em **fase inicial**
 
 ---
 
