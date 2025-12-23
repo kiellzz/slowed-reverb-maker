@@ -1,0 +1,99 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Fundo futurista suave */
+body {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f0f, #181818);
+  color: #ffffff;
+}
+
+/* Container moderno */
+.container {
+  text-align: center;
+  padding: 3rem 2.5rem;
+  background: rgba(25, 25, 25, 0.85);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Título clean */
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+/* Parágrafo */
+p {
+  color: #aaaaaa;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* Botão moderno e simples */
+.upload-btn {
+  display: inline-block;
+  padding: 1rem 3rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #222222;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.upload-btn:hover {
+  transform: scale(1.03);
+  background: #333333;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* Nome do arquivo */
+#file-name {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: #cccccc;
+}
+
+/* Footer discreto */
+.footer {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: #888888;
+}
+
+#download-btn {
+  display: none; /* já oculto inicialmente */
+  padding: 1rem 3rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #e74c3c; /* vermelho chamativo */
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
+}
+
+#download-btn:hover {
+  transform: scale(1.05);
+  background: #c0392b; /* vermelho mais escuro no hover */
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.6);
+}
+
