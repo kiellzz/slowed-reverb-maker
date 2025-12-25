@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("file-input");
   const fileName = document.getElementById("file-name");
   const downloadBtn = document.getElementById("download-btn");
+  const loading = document.getElementById("loading");
 
   input.addEventListener("change", async () => {
     const file = input.files[0];
@@ -13,13 +14,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData();
     formData.append("audio", file);
 
+    // MOSTRA O LOADING
+    loading.classList.remove("hidden");
+
     try {
       const response = await fetch("/convert", {
         method: "POST",
         body: formData
       });
 
-      if (!response.ok) throw new Error("Server error");
+      if (!response.ok) {
+        throw new Error("Server error");
+      }
 
       const data = await response.json();
 
@@ -27,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("No download URL");
       }
 
-      // mostrar botão
+      // CONFIGURA BOTÃO DE DOWNLOAD
       downloadBtn.href = data.downloadUrl;
       downloadBtn.download =
         file.name.replace(/\.[^/.]+$/, "") + "_slowed.mp3";
@@ -38,6 +44,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.error(err);
       fileName.textContent = "Error processing audio.";
+    } finally {
+      // ESCONDE O LOADING SEMPRE
+      loading.classList.add("hidden");
     }
   });
 });

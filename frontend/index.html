@@ -13,20 +13,33 @@
     <!-- Upload -->
     <label class="upload-btn">
       Choose audio
-      <input type="file" id="file-input" name="audio" accept="audio/*" hidden />
+      <input
+        type="file"
+        id="file-input"
+        name="audio"
+        accept="audio/*"
+        hidden
+      />
     </label>
 
     <!-- Nome do arquivo -->
     <span id="file-name"></span>
 
-    <a
-  id="download-btn"
-  class="upload-btn"
-  style="display:none; margin-top:12px;"
->
-  Download Processed Audio
-</a>
+    <!-- Loading -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Processing audio...</p>
+    </div>
 
+    <!-- Download -->
+    <a
+      id="download-btn"
+      class="upload-btn"
+      style="display:none; margin-top:12px;"
+    >
+      Download Processed Audio
+    </a>
+  </main>
 
   <footer class="footer">
     Developed by Ezequiel Borges
