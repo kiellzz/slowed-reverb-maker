@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: slowed-reverb-maker
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: |
+      apt-get update
+      apt-get install -y ffmpeg
+      npm install
+    startCommand: npm start
