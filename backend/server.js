@@ -16,13 +16,11 @@ app.use((req, res, next) => {
 
 // Frontend
 const frontendPath = path.join(__dirname, "..", "frontend");
-
 app.use(express.static(frontendPath));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
-
 
 // Pastas
 ["uploads", "outputs"].forEach(dir => {
@@ -30,40 +28,51 @@ app.get("/", (req, res) => {
   if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath);
 });
 
+// Multer
 const upload = multer({
-  dest: path.join(__dirname, "uploads")
+  dest: path.join(__dirname, "uploads"),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
 });
 
 // CONVERT
-app.post("/convert", upload.single("audio"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file received" });
-  }
-
-  const inputPath = req.file.path;
-  const outputName = `slowed_${Date.now()}.mp3`;
-  const outputPath = path.join(__dirname, "outputs", outputName);
-
-  const filter = "asetrate=44100*0.9,aresample=44100,atempo=1.0";
-  const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
-
-  const command = `"${ffmpegPath}" -y -i "${inputPath}" -filter:a "${filter}" "${outputPath}"`;
-
-  exec(command, (error, stdout, stderr) => {
-    fs.unlink(inputPath, () => {});
-
-    if (error) {
-      console.error(stderr);
-      return res.status(500).json({ error: "FFmpeg failed" });
+app.post("/convert", (req, res) => {
+  upload.single("audio")(req, res, err => {
+    if (err) {
+      console.error("Upload error:", err.message);
+      return res.status(400).json({ error: "File too large or invalid" });
     }
 
-    res.json({
-      downloadUrl: `/download/${outputName}`
+    if (!req.file) {
+      return res.status(400).json({ error: "No file received" });
+    }
+
+    const inputPath = req.file.path;
+    const outputName = `slowed_${Date.now()}.mp3`;
+    const outputPath = path.join(__dirname, "outputs", outputName);
+
+    const filter = "asetrate=44100*0.9,aresample=44100,atempo=1.0";
+    const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
+
+    const command = `"${ffmpegPath}" -y -i "${inputPath}" -filter:a "${filter}" "${outputPath}"`;
+
+    exec(command, (error, stdout, stderr) => {
+      fs.unlink(inputPath, () => {});
+
+      if (error) {
+        console.error("FFmpeg error:", stderr);
+        return res.status(500).json({ error: "FFmpeg failed" });
+      }
+
+      res.json({
+        downloadUrl: `/download/${outputName}`
+      });
     });
   });
 });
 
-// DOWNLOAD + DELETE (aqui está o segredo)
+// DOWNLOAD + DELETE
 app.get("/download/:file", (req, res) => {
   const filePath = path.join(__dirname, "outputs", req.params.file);
 
@@ -77,7 +86,6 @@ app.get("/download/:file", (req, res) => {
       return;
     }
 
-    // 🔥 apaga SOMENTE depois que o download termina
     fs.unlink(filePath, () => {
       console.log("Deleted:", req.params.file);
     });
@@ -85,5 +93,5 @@ app.get("/download/:file", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
