@@ -1,21 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById('file-input');
-  const fileName = document.getElementById('file-name');
-  const downloadBtn = document.getElementById('download-btn');
+  const input = document.getElementById("file-input");
+  const fileName = document.getElementById("file-name");
+  const downloadBtn = document.getElementById("download-btn");
 
-  input.addEventListener('change', async () => {
+  input.addEventListener("change", async () => {
     const file = input.files[0];
     if (!file) return;
 
-    // Feedback inicial
     fileName.textContent = "Processing audio...";
-    downloadBtn.style.display = "none"; // esconde enquanto processa
+    downloadBtn.style.display = "none";
 
     const formData = new FormData();
     formData.append("audio", file);
 
     try {
-      const response = await fetch("http://localhost:3000/convert", {
+      const response = await fetch("/convert", {
         method: "POST",
         body: formData
       });
@@ -24,25 +23,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await response.json();
 
-      // DEBUG: verifica se a URL está chegando
-      console.log("Download URL:", data.downloadUrl);
-
       if (!data.downloadUrl) {
-        throw new Error("Download URL missing");
+        throw new Error("No download URL");
       }
 
-      // Atualiza botão de download
+      // mostrar botão
       downloadBtn.href = data.downloadUrl;
-      downloadBtn.download = file.name.replace(/\.[^/.]+$/, "") + "_slowed.mp3";
-      downloadBtn.style.display = "inline-block"; // mostra o botão
-      downloadBtn.textContent = "Download Processed Audio";
+      downloadBtn.download =
+        file.name.replace(/\.[^/.]+$/, "") + "_slowed.mp3";
 
-      fileName.textContent = file.name + " ready!";
+      downloadBtn.style.display = "inline-block";
+      fileName.textContent = "Audio ready!";
 
     } catch (err) {
       console.error(err);
       fileName.textContent = "Error processing audio.";
-      downloadBtn.style.display = "none"; // garante que o botão fique escondido
     }
   });
 });

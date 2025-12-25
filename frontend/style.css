@@ -1,12 +1,12 @@
-/* Reset básico */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@400;500;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Fundo futurista suave */
 body {
   height: 100vh;
   display: flex;
@@ -14,9 +14,9 @@ body {
   justify-content: center;
   background: linear-gradient(135deg, #0f0f0f, #181818);
   color: #ffffff;
+  font-family: 'Roboto', sans-serif;
 }
 
-/* Container moderno */
 .container {
   text-align: center;
   padding: 3rem 2.5rem;
@@ -27,22 +27,21 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Título clean */
+/* Título */
 h1 {
+  font-family: 'Orbitron', sans-serif;
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: #ffffff;
   letter-spacing: 1px;
 }
 
-/* Parágrafo */
 p {
   color: #aaaaaa;
   margin-bottom: 2rem;
   font-size: 1rem;
 }
 
-/* Botão moderno e simples */
 .upload-btn {
   display: inline-block;
   padding: 1rem 3rem;
@@ -53,6 +52,7 @@ p {
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-decoration: none; /* remove sublinhado */
 }
 
 .upload-btn:hover {
@@ -61,7 +61,6 @@ p {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
-/* Nome do arquivo */
 #file-name {
   display: block;
   margin-top: 1rem;
@@ -69,31 +68,11 @@ p {
   color: #cccccc;
 }
 
-/* Footer discreto */
 .footer {
   position: fixed;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #888888;
 }
-
-#download-btn {
-  display: none; /* já oculto inicialmente */
-  padding: 1rem 3rem;
-  font-weight: 600;
-  color: #ffffff;
-  background: #e74c3c; /* vermelho chamativo */
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
-}
-
-#download-btn:hover {
-  transform: scale(1.05);
-  background: #c0392b; /* vermelho mais escuro no hover */
-  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.6);
-}
-
