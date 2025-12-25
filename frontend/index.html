@@ -6,44 +6,45 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="container">
-    <h1>Slowed + Reverb</h1>
-    <p>Transform any audio/song into slowed + reverb</p>
+  <div class="page-wrapper">
+    <main class="container">
+      <h1>Slowed + Reverb</h1>
+      <p>Transform any audio/song into slowed + reverb</p>
 
-    <!-- Upload -->
-    <label class="upload-btn">
-      Choose audio
-      <input
-        type="file"
-        id="file-input"
-        name="audio"
-        accept="audio/*"
-        hidden
-      />
-    </label>
+      <!-- Upload -->
+      <label class="upload-btn">
+        Choose audio
+        <input
+          type="file"
+          id="file-input"
+          name="audio"
+          accept="audio/*"
+          hidden
+        />
+      </label>
 
-    <!-- Nome do arquivo -->
-    <span id="file-name"></span>
+      <!-- Nome do arquivo -->
+      <span id="file-name"></span>
 
-    <!-- Loading -->
-    <div id="loading" class="loading hidden">
-      <div class="spinner"></div>
-      <p>Processing audio...</p>
-    </div>
+      <!-- Download -->
+      <a
+        id="download-btn"
+        class="download-btn hidden"
+      >
+        Download Processed Audio
+      </a>
 
-    <!-- Download -->
-    <a
-      id="download-btn"
-      class="upload-btn"
-      style="display:none; margin-top:12px;"
-    >
-      Download Processed Audio
-    </a>
-  </main>
+      <!-- Spinner -->
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Processing audio...</p>
+      </div>
+    </main>
 
-  <footer class="footer">
-    Developed by Ezequiel Borges
-  </footer>
+    <footer class="footer">
+      Developed by Ezequiel Borges
+    </footer>
+  </div>
 
   <script src="main.js"></script>
 </body>

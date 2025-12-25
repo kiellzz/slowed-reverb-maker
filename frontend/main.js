@@ -8,14 +8,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = input.files[0];
     if (!file) return;
 
+    // RESETA O ESTADO PARA NOVO UPLOAD
+    fileName.textContent = "";
+    downloadBtn.classList.add("hidden");
+    loading.classList.remove("hidden");
+
     fileName.textContent = "Processing audio...";
-    downloadBtn.style.display = "none";
 
     const formData = new FormData();
     formData.append("audio", file);
-
-    // MOSTRA O LOADING
-    loading.classList.remove("hidden");
 
     try {
       const response = await fetch("/convert", {
@@ -38,14 +39,13 @@ document.addEventListener("DOMContentLoaded", () => {
       downloadBtn.download =
         file.name.replace(/\.[^/.]+$/, "") + "_slowed.mp3";
 
-      downloadBtn.style.display = "inline-block";
+      downloadBtn.classList.remove("hidden");
       fileName.textContent = "Audio ready!";
 
     } catch (err) {
       console.error(err);
       fileName.textContent = "Error processing audio.";
     } finally {
-      // ESCONDE O LOADING SEMPRE
       loading.classList.add("hidden");
     }
   });
