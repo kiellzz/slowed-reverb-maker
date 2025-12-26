@@ -13,8 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadBtn.classList.add("hidden");
     loading.classList.remove("hidden");
 
-    fileName.textContent = "Processing audio...";
-
     const formData = new FormData();
     formData.append("audio", file);
 
