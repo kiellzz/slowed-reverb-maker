@@ -1,53 +1,26 @@
-# 🎵 Slowed + Reverb Maker
+Slowed + Reverb Maker
 
-> Transforme qualquer áudio em versão slowed + reverb. Projeto em **fase inicial**
+A simple web app to transform any audio/song into slowed + reverb effect.
 
----
+🎵 Try it online: https://slowed-reverb-maker.onrender.com/
 
-## 🗂 Estrutura do projeto
-slowed-reverb-maker/
-├─ frontend/
-│ ├─ index.html
-│ ├─ style.css
-│ └─ main.js
-├─ backend/
-│ ├─ server.js
-│ ├─ uploads/ # arquivos temporários enviados
-│ └─ outputs/ # arquivos processados
-├─ .gitignore
-└─ README.md
+Features
 
+Upload any audio file (MP3, WAV, etc.)
+File size: maximum 10 MB
 
----
+Apply slowed + reverb effect automatically
 
-## ⚙ Funcionalidades
+Download the processed audio
 
-- Upload de arquivos de áudio (`.mp3`, `.wav` etc.)
-- Processamento para versão slowed + reverb
-- Armazenamento local dos arquivos processados na pasta `outputs`
+Visual loading spinner while processing
 
----
+Supports multiple uploads without refreshing the page
 
-## 📦 Dependências
+Tech Stack
 
-- Node.js
-- express e multer para backend
-- FFmpeg instalado no sistema
+Frontend: HTML, CSS, JavaScript
 
-Instalação no backend:
+Backend: Node.js, Express, Multer, FFmpeg
 
-- cd backend
-- npm install express multer
-
-## Como rodar localmente
-
-1. Clone o repositório
-2. Instale as dependências
-3. Inicie o servidor
-4. Acesse http://localhost:3000
-
-
-
-
-
-
+Deployment: Render
