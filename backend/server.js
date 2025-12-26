@@ -49,7 +49,11 @@ app.post("/convert", (req, res) => {
     }
 
     const inputPath = req.file.path;
-    const outputName = `slowed_${Date.now()}.mp3`;
+
+    // Mantém o nome original do arquivo
+    const originalName = path.parse(req.file.originalname).name;
+    const outputName = `${originalName}_slowed.mp3`;
+
     const outputPath = path.join(__dirname, "outputs", outputName);
 
     const filter = "asetrate=44100*0.9,aresample=44100,atempo=1.0";

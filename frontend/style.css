@@ -7,79 +7,85 @@
 }
 
 body {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f0f0f, #181818);
-  color: #ffffff;
+  background: linear-gradient(135deg, #0a0a0a, #1c1c1c);
+  color: #fff;
   font-family: 'Roboto', sans-serif;
+  overflow-x: hidden;
 }
 
 .container {
   text-align: center;
   padding: 3rem 2.5rem;
-  background: rgba(25, 25, 25, 0.85);
-  border-radius: 16px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(20, 20, 20, 0.92);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 480px;
+  width: 90%;
+  transition: transform 0.3s ease;
+}
+
+.container:hover {
+  transform: translateY(-4px);
 }
 
 /* Título */
 h1 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: #ffffff;
-  letter-spacing: 1px;
+  font-size: 2.75rem;
+  margin-bottom: 0.8rem;
+  letter-spacing: 1.5px;
+  color: #69f0ae; /* verde suave */
+  text-shadow: 0 0 8px rgba(105, 240, 174, 0.5);
 }
 
 p {
-  color: #aaaaaa;
+  color: #bbbbbb;
   margin-bottom: 2rem;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  line-height: 1.4;
 }
 
 /* Botões */
-.upload-btn {
+.upload-btn,
+.download-btn {
   display: inline-block;
   padding: 1rem 3rem;
   font-weight: 600;
-  color: #ffffff;
-  background: #222222;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+
+.upload-btn {
+  color: #fff;
+  background: linear-gradient(135deg, #222222, #2a2a2a);
 }
 
 .upload-btn:hover {
-  transform: scale(1.03);
-  background: #333333;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #333333, #444444);
+  box-shadow: 0 8px 24px rgba(105, 240, 174, 0.5); /* glow sutil verde */
 }
 
-/* Botão de download destacado */
 .download-btn {
-  display: inline-block;
   margin-top: 12px;
-  padding: 1rem 3rem;
-  font-weight: 600;
-  color: #ffffff;
-  background-color: #1a3c6f; /* azul marinho */
-  border-radius: 12px;
-  text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  color: #fff;
+  background: linear-gradient(135deg, #1a3c6f, #21528c);
 }
 
 .download-btn:hover {
-  transform: scale(1.03);
-  background-color: #16315a; /* versão mais escura no hover */
-  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #2e5ca6, #16315a); /* azul mais vivo */
+  box-shadow: 0 8px 24px rgba(46, 92, 166, 0.5); /* glow azul suave */
 }
 
 /* Mensagens */
@@ -87,16 +93,18 @@ p {
   display: block;
   margin-top: 1rem;
   font-size: 0.95rem;
-  color: #cccccc;
+  color: #a0ffea; /* verde suave para contraste */
+  word-break: break-word;
 }
 
+/* Footer */
 .footer {
   position: fixed;
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: #888888;
+  font-size: 0.75rem;
+  color: #88cfff; /* azul discreto */
 }
 
 /* Spinner / Loading */
@@ -104,21 +112,22 @@ p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 24px;
   width: 100%;
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .spinner {
-  width: 42px;
-  height: 42px;
-  border: 4px solid #ccc;
-  border-top: 4px solid #000;
+  width: 48px;
+  height: 48px;
+  border: 5px solid rgba(255,255,255,0.2);
+  border-top: 5px solid #69f0ae; /* verde suave animado */
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 10px;
 }
 
 @keyframes spin {
