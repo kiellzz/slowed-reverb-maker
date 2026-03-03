@@ -13,8 +13,33 @@
       <h1>Slowed + Reverb</h1>
       <p>Transform any audio/song into slowed + reverb</p>
 
+<div class="speed-control">
+  <label for="speedRange">Speed</label>
+  <div class="slider-group">
+    <input 
+      type="range" 
+      id="speedRange" 
+      min="0.5" 
+      max="2.0" 
+      step="0.05" 
+      value="0.85"
+    />
+
+    <input
+      type="number"
+      id="speedInput"
+      min="0.5"
+      max="2.0"
+      step="0.01"
+      value="0.85"
+    />
+    <span class="multiplier">x</span>
+  </div>
+</div>
+
       <!-- Upload -->
       <label class="upload-btn">
+        <span class="btn-icon"></span>
         Choose audio
         <input
           type="file"
@@ -27,6 +52,9 @@
 
       <!-- Nome do arquivo -->
       <span id="file-name"></span>
+
+      <!-- Confirm button -->
+      <button type="button" id="confirm-btn" class="confirm-btn hidden">Confirm?</button>
 
       <!-- Download -->
       <a

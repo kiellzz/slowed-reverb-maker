@@ -38,6 +38,7 @@ const upload = multer({
 
 // CONVERT
 app.post("/convert", (req, res) => {
+  console.log("ROUTE /convert HIT");
   upload.single("audio")(req, res, err => {
     if (err) {
       console.error("Upload error:", err.message);
@@ -48,15 +49,25 @@ app.post("/convert", (req, res) => {
       return res.status(400).json({ error: "No file received" });
     }
 
-    const inputPath = req.file.path;
+    const inputPath = path.resolve(req.file.path);
 
-    // Mantém o nome original do arquivo
     const originalName = path.parse(req.file.originalname).name;
     const outputName = `${originalName}_slowed.mp3`;
-
     const outputPath = path.join(__dirname, "outputs", outputName);
 
-    const filter = "asetrate=44100*0.9,aresample=44100,atempo=1.0";
+    // 🔒 RECEBE E VALIDA VELOCIDADE
+    let speed = parseFloat(req.body.speed);
+
+    if (isNaN(speed)) speed = 1.0;
+    if (speed < 0.5) speed = 0.5;
+    if (speed > 2.0) speed = 2.0;
+
+    // Limita para 2 casas decimais
+    speed = Number(speed.toFixed(2));
+
+    // 🎧 FILTRO ATUALIZADO
+    const filter = `asetrate=44100*${speed},aresample=44100`;
+    
     const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
 
     const command = `"${ffmpegPath}" -y -i "${inputPath}" -filter:a "${filter}" "${outputPath}"`;
@@ -65,9 +76,9 @@ app.post("/convert", (req, res) => {
       fs.unlink(inputPath, () => {});
 
       if (error) {
-        console.error("FFmpeg error:", stderr);
-        return res.status(500).json({ error: "FFmpeg failed" });
-      }
+  console.error("FFmpeg error:", stderr);
+  return res.status(500).json({ error: stderr });
+}
 
       res.json({
         downloadUrl: `/download/${outputName}`
