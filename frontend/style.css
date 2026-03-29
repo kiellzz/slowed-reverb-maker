@@ -836,10 +836,45 @@ input[type="range"]::-moz-range-thumb {
     0 0 24px rgba(74, 158, 255, 0.3);
 
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .play-btn:hover {
   transform: scale(1.08);
+}
+
+.play-btn::before,
+.play-btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.play-btn::before {
+  left: 16px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid #ffffff;
+}
+
+.play-btn.is-playing::before,
+.play-btn.is-playing::after {
+  width: 4px;
+  height: 14px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.play-btn.is-playing::before {
+  left: 15px;
+}
+
+.play-btn.is-playing::after {
+  right: 15px;
 }
 
 .speed-presets {
