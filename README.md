@@ -1,6 +1,17 @@
 # 🎧 Slowed + Reverb Maker
 
-A modern web app to transform any audio into a **slowed/speed + reverb version** with a clean & interactive user experience.
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=ffffff)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=ffffff)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=ffffff)
+![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=ffffff)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=ffffff)
+
+---
+
+## 🎬 Demo
+
+<video src="./media/media.mp4" controls width="100%"></video>
 
 ---
 
@@ -106,35 +117,46 @@ Users can upload an audio file, customize playback speed, preview the result, an
 
 ## ⚙️ How It Works
 
-1. User uploads an audio file
-2. File is sent to the backend (`/convert`)
+1. User uploads an audio file  
+2. File is sent to the backend (`/convert`)  
 3. FFmpeg processes the audio with filters:
 
-   ```
-   asetrate=44100*speed,aresample=44100
-   ```
-4. Processed file is stored temporarily
+```
+
+asetrate=44100*speed,aresample=44100
+
+```
+
+4. Processed file is stored temporarily  
 5. User can:
 
-   * preview audio
-   * download result
-6. Files are automatically deleted after some time
+* preview audio  
+* download result  
+
+6. Files are automatically deleted after some time  
 
 ---
 
 ## 📦 Project Structure
 
 ```
+
 /frontend
-  index.html
-  style.css
-  main.js
+index.html
+style.css
+main.js
 
 /backend
-  server.js
-  /uploads
-  /outputs
+server.js
+/uploads
+/outputs
+
+/media
+media.mp4
+
 ```
+
+---
 
 ## 👨‍💻 Author
 
@@ -143,4 +165,3 @@ Developed by **Ezequiel Borges**
 * GitHub: https://github.com/kiellzz
 * LinkedIn: https://linkedin.com/in/ezequielborgesdev/
 
----
