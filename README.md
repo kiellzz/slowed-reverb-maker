@@ -13,11 +13,7 @@
 
 ![Demo](./media/media.gif)
 
----
-
-## 🚀 Live Demo
-
-🔗 https://slowed-reverb-maker.onrender.com/
+🚀 Try it live: https://slowed-reverb-maker.onrender.com/
 
 ---
 
