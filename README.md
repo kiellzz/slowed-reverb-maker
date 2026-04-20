@@ -10,7 +10,7 @@
 
 ## 🎬 Demo
 
-> ⚠️ The demo GIF below shows an older version of the UI. The current version features a redesigned space theme with new controls.
+> ⚠️ The demo GIF below shows an older version of the UI. The current version features a UI redesign with new controls.
 
 ![Demo](./media/media.gif)
 
