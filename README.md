@@ -1,7 +1,7 @@
 # 🎧 Slowed + Reverb Maker
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=ffffff)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=ffffff)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=ffffff)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=ffffff)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=ffffff)
 ![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=ffffff)
@@ -26,7 +26,7 @@ This project was built to go beyond a simple audio converter, focusing on:
 * Real-time feedback
 * Smooth interactions
 
-Users can upload an audio file, customize playback speed and reverb intensity, preview the result, and download the processed version.
+Users can select an audio file, customize playback speed and reverb intensity, preview the effect locally before uploading, process it on the backend, and download the processed version.
 
 ---
 
@@ -36,6 +36,8 @@ Users can upload an audio file, customize playback speed and reverb intensity, p
 
 * Adjustable speed (0.5x – 2.0x)
 * Adjustable reverb intensity (0 – 100%)
+* Local Web Audio API preview before upload
+* Synthetic stereo impulse response for preview reverb
 * Slowed + reverb effect via FFmpeg
 * Dynamic audio normalization
 * Output ready for download
@@ -55,7 +57,9 @@ Users can upload an audio file, customize playback speed and reverb intensity, p
 ### 📂 File Handling
 
 * Drag & drop support
-* File preview with interactive audio progress bar (click to seek)
+* In-card file preview with play/pause controls
+* Interactive audio progress bar with click-to-seek
+* Live preview updates when speed or reverb sliders change
 * File metadata display (name + size)
 * Remove file with cleanup on backend
 
@@ -66,6 +70,8 @@ Users can upload an audio file, customize playback speed and reverb intensity, p
 * Real upload progress (via XMLHttpRequest)
 * Simulated processing stage for better UX
 * Status states:
+  * Preparing local preview
+  * Preview ready
   * Uploading...
   * Processing...
   * Finalizing...
@@ -97,7 +103,7 @@ Users can upload an audio file, customize playback speed and reverb intensity, p
 ### Frontend
 * HTML5
 * CSS3 (custom UI, animations)
-* Vanilla JavaScript (no frameworks)
+* Vanilla TypeScript (no frameworks)
 
 ### Backend
 * Node.js
@@ -108,21 +114,44 @@ Users can upload an audio file, customize playback speed and reverb intensity, p
 ### Deployment
 * Render
 
+Render settings:
+
+```text
+Root Directory: backend
+Build Command: npm ci --include=dev && npm run build
+Pre-Deploy Command: leave empty
+Start Command: npm start
+```
+
+---
+
+## Local Development
+
+```bash
+cd backend
+npm ci
+npm run build
+npm start
+```
+
+The TypeScript sources are `backend/server.ts` and `frontend/main.ts`. The build generates runtime JavaScript inside `backend/dist/`.
+
 ---
 
 ## ⚙️ How It Works
 
-1. User uploads an audio file
-2. File is sent to the backend (`/convert`)
-3. FFmpeg processes the audio with filters:
+1. User selects an audio file
+2. The browser decodes it with the Web Audio API and shows an in-card preview
+3. Preview playback applies the selected speed and dry/wet reverb mix locally
+4. When the user clicks process, the file is sent to the backend (`/convert`)
+5. FFmpeg processes the audio with filters:
 ```
 asetrate=44100*speed, aresample=44100, aecho (multi-reflection reverb), dynaudnorm
 ```
-4. Processed file is stored temporarily
-5. User can:
-   * preview audio with progress bar
+6. Processed file is stored temporarily
+7. User can:
    * download result
-6. Files are automatically deleted after some time
+8. Files are automatically deleted after some time
 
 ---
 
@@ -132,9 +161,10 @@ asetrate=44100*speed, aresample=44100, aecho (multi-reflection reverb), dynaudno
 /frontend
   index.html
   style.css
-  main.js
+  main.ts
 /backend
-  server.js
+  server.ts
+  tsconfig.json
   /uploads
   /outputs
 /media

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleDetection": "legacy",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "rootDir": ".",
+    "outDir": "../backend/dist/frontend",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["main.ts"]
+}

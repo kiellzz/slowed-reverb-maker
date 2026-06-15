@@ -1,6 +1,11 @@
 # Node.js
 node_modules/
 npm-debug.log
+backend/dist/
+frontend/main.js
+frontend/main.js.map
+backend/uploads/
+backend/outputs/
 
 # IDE/Editor
 .vscode/
