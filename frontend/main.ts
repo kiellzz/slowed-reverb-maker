@@ -1,3 +1,5 @@
+import { AudioPreview } from "./preview.js";
+
 interface ConvertResponse {
   downloadUrl?: string;
   fileName?: string;
@@ -43,27 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const processStatus = document.querySelector(".process-status") as HTMLElement | null;
   const progressTrack = document.querySelector(".progress-track") as HTMLElement | null;
 
-  function formatTime(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  }
-
-  // Mantem slider e campo numerico de reverb sincronizados.
-  reverbRange.addEventListener("input", () => {
-    reverbInput.value = reverbRange.value;
-    handlePreviewSettingsChange();
-  });
-
-  reverbInput.addEventListener("blur", () => {
-    let val = parseInt(reverbInput.value);
-    if (isNaN(val)) val = 30;
-    val = Math.max(0, Math.min(100, val));
-    reverbInput.value = String(val);
-    reverbRange.value = String(val);
-    handlePreviewSettingsChange();
-  });
-
   // Divide a barra entre progresso real de upload e simulacao do processamento.
   const UPLOAD_PROGRESS_SHARE = 55;
   const PROCESSING_START = 58;
@@ -73,17 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Estado atual da tela e da ultima conversao feita pelo usuario.
   let selectedFile: File | null = null;
-  let audioCtx: AudioContext | null = null;
-  let previewBuffer: AudioBuffer | null = null;
-  let previewSource: AudioBufferSourceNode | null = null;
-  let previewGraphNodes: AudioNode[] = [];
-  let previewRafId: number | null = null;
-  let previewStartTime = 0;
-  let previewStartOffset = 0;
-  let previewPlaybackRate = 1;
-  let currentOffset = 0;
-  let isPreviewPlaying = false;
-  let previewDecodeId = 0;
   let previewUrl = "";
   let progressInterval: ReturnType<typeof setInterval> | null = null;
   let processedFileName = "";
@@ -102,19 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function getAudioContext(): AudioContext | null {
-    if (audioCtx) return audioCtx;
-
-    const AudioContextCtor =
-      window.AudioContext ||
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-
-    if (!AudioContextCtor) return null;
-
-    audioCtx = new AudioContextCtor();
-    return audioCtx;
-  }
-
   function getPlaybackRate(): number {
     const rawValue = Number(speedRange?.value || speedInput?.value || 1);
 
@@ -131,88 +88,38 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.max(0, Math.min(100, rawValue)) / 100;
   }
 
-  function createSyntheticImpulseResponse(ctx: AudioContext): AudioBuffer {
-    const durationSeconds = 2;
-    const length = Math.floor(ctx.sampleRate * durationSeconds);
-    const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
-
-    for (let channelIndex = 0; channelIndex < impulse.numberOfChannels; channelIndex += 1) {
-      const channel = impulse.getChannelData(channelIndex);
-
-      for (let i = 0; i < length; i += 1) {
-        const time = i / ctx.sampleRate;
-        const decay = Math.exp(-3.8 * time);
-        channel[i] = (Math.random() * 2 - 1) * decay * 0.22;
-      }
+  const preview = new AudioPreview(
+    {
+      playButton: playBtn,
+      progressWrap: audioProgressWrap,
+      progressFill: audioProgressFill,
+      progressTrack: audioProgressTrack,
+      currentTime: audioCurrent,
+      duration: audioDuration
+    },
+    {
+      getPlaybackRate,
+      getReverbMix,
+      onReady: () => setDecodedPreviewUI(),
+      onUnavailable: () => updateProgress(0, "Ready to process", "Preview is not available in this browser."),
+      onError: (message) => setErrorUI(message)
     }
+  );
 
-    return impulse;
-  }
+  // Mantem slider e campo numerico de reverb sincronizados.
+  reverbRange.addEventListener("input", () => {
+    reverbInput.value = reverbRange.value;
+    preview.handleSettingsChange();
+  });
 
-  function cancelPreviewAnimation(): void {
-    if (previewRafId !== null) {
-      cancelAnimationFrame(previewRafId);
-      previewRafId = null;
-    }
-  }
-
-  function disconnectPreviewGraph(): void {
-    previewGraphNodes.forEach((node) => {
-      try {
-        node.disconnect();
-      } catch {
-        // A node may already be disconnected after a natural end.
-      }
-    });
-
-    previewGraphNodes = [];
-  }
-
-  function getCurrentBufferOffset(): number {
-    if (!previewBuffer) return 0;
-
-    if (!isPreviewPlaying || !audioCtx) {
-      return Math.max(0, Math.min(previewBuffer.duration, currentOffset));
-    }
-
-    const elapsedBufferTime = (audioCtx.currentTime - previewStartTime) * previewPlaybackRate;
-    return Math.max(
-      0,
-      Math.min(previewBuffer.duration, previewStartOffset + elapsedBufferTime)
-    );
-  }
-
-  function renderPreviewProgress(bufferOffset = currentOffset): void {
-    const rate = isPreviewPlaying ? previewPlaybackRate : getPlaybackRate();
-    const bufferDuration = previewBuffer?.duration || 0;
-    const safeOffset = Math.max(0, Math.min(bufferDuration, bufferOffset));
-    const previewDuration = bufferDuration > 0 ? bufferDuration / rate : 0;
-    const previewTime = rate > 0 ? safeOffset / rate : 0;
-    const progress = bufferDuration > 0 ? (safeOffset / bufferDuration) * 100 : 0;
-
-    if (audioProgressFill) audioProgressFill.style.width = `${progress}%`;
-    if (audioCurrent) audioCurrent.textContent = formatTime(previewTime);
-    if (audioDuration) audioDuration.textContent = formatTime(previewDuration);
-  }
-
-  function setPlayButtonState(isPlaying: boolean): void {
-    if (!playBtn) return;
-    playBtn.classList.toggle("is-playing", isPlaying);
-    playBtn.textContent = "";
-    playBtn.setAttribute("aria-label", isPlaying ? "Pause preview" : "Play preview");
-  }
-
-  function hidePlayButton(): void {
-    if (!playBtn) return;
-    setPlayButtonState(false);
-    playBtn.classList.add("hidden");
-  }
-
-  function showPlayButton(): void {
-    if (!playBtn) return;
-    playBtn.classList.remove("hidden");
-    setPlayButtonState(false);
-  }
+  reverbInput.addEventListener("blur", () => {
+    let val = parseInt(reverbInput.value);
+    if (isNaN(val)) val = 30;
+    val = Math.max(0, Math.min(100, val));
+    reverbInput.value = String(val);
+    reverbRange.value = String(val);
+    preview.handleSettingsChange();
+  });
 
   function setProcessingStatusVisible(isVisible: boolean): void {
     [processStatus, statusText, statusPercent, statusDetail, progressTrack].forEach((element) => {
@@ -220,47 +127,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function stopPreviewSource(): void {
-    cancelPreviewAnimation();
-    isPreviewPlaying = false;
-
-    const source = previewSource;
-    previewSource = null;
-
-    if (source) {
-      source.onended = null;
-
-      try {
-        source.stop();
-      } catch {
-        // The source may have ended naturally already.
-      }
-    }
-
-    disconnectPreviewGraph();
-  }
-
-  function resetPreviewEngine(clearBuffer: boolean): void {
-    previewDecodeId += 1;
-    stopPreviewSource();
-    currentOffset = 0;
-    previewStartOffset = 0;
-    previewPlaybackRate = getPlaybackRate();
-
-    if (clearBuffer) {
-      previewBuffer = null;
-    }
-
-    renderPreviewProgress(0);
-  }
-
   function setIdlePreviewUI(status = "Ready to process", detail = "Upload starts when you click process."): void {
-    if (audioProgressWrap) audioProgressWrap.classList.add("hidden");
-
-    hidePlayButton();
+    preview.hideControls();
     setProcessingStatusVisible(true);
     updateProgress(0, status, detail);
-    renderPreviewProgress(0);
 
     if (confirmBtn) {
       confirmBtn.classList.remove("hidden");
@@ -269,153 +139,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setDecodedPreviewUI(): void {
-    if (audioProgressWrap) audioProgressWrap.classList.remove("hidden");
-
     setProcessingStatusVisible(false);
-    showPlayButton();
-    renderPreviewProgress(currentOffset);
 
     if (confirmBtn) {
       confirmBtn.classList.remove("hidden");
       confirmBtn.disabled = false;
-    }
-  }
-
-  function handlePreviewEnded(source: AudioBufferSourceNode): void {
-    if (source !== previewSource || !isPreviewPlaying) return;
-
-    cancelPreviewAnimation();
-    isPreviewPlaying = false;
-    previewSource = null;
-    currentOffset = 0;
-    previewStartOffset = 0;
-
-    disconnectPreviewGraph();
-    setPlayButtonState(false);
-    renderPreviewProgress(0);
-  }
-
-  async function startPreviewAt(offset: number): Promise<void> {
-    if (!previewBuffer) return;
-
-    const ctx = getAudioContext();
-    if (!ctx) return;
-
-    if (ctx.state === "suspended") {
-      await ctx.resume();
-    }
-
-    const rate = getPlaybackRate();
-    const mix = getReverbMix();
-    const safeOffset = offset >= previewBuffer.duration
-      ? 0
-      : Math.max(0, Math.min(previewBuffer.duration, offset));
-
-    stopPreviewSource();
-
-    const source = ctx.createBufferSource();
-    const dryGain = ctx.createGain();
-    const wetGain = ctx.createGain();
-    const convolver = ctx.createConvolver();
-
-    source.buffer = previewBuffer;
-    source.playbackRate.value = rate;
-    dryGain.gain.value = 1 - mix;
-    wetGain.gain.value = mix;
-    convolver.buffer = createSyntheticImpulseResponse(ctx);
-
-    source.connect(dryGain).connect(ctx.destination);
-    source.connect(convolver).connect(wetGain).connect(ctx.destination);
-
-    previewSource = source;
-    previewGraphNodes = [source, dryGain, convolver, wetGain];
-    previewStartOffset = safeOffset;
-    currentOffset = safeOffset;
-    previewPlaybackRate = rate;
-    previewStartTime = ctx.currentTime;
-    isPreviewPlaying = true;
-
-    source.onended = () => {
-      handlePreviewEnded(source);
-    };
-
-    try {
-      source.start(0, safeOffset);
-    } catch (error) {
-      previewSource = null;
-      isPreviewPlaying = false;
-      disconnectPreviewGraph();
-      throw error;
-    }
-
-    setPlayButtonState(true);
-    renderPreviewProgress(safeOffset);
-    startPreviewAnimation();
-  }
-
-  function startPreviewAnimation(): void {
-    cancelPreviewAnimation();
-
-    const tick = () => {
-      if (!isPreviewPlaying) return;
-
-      renderPreviewProgress(getCurrentBufferOffset());
-      previewRafId = requestAnimationFrame(tick);
-    };
-
-    previewRafId = requestAnimationFrame(tick);
-  }
-
-  function pausePreview(): void {
-    currentOffset = getCurrentBufferOffset();
-    stopPreviewSource();
-    setPlayButtonState(false);
-    renderPreviewProgress(currentOffset);
-  }
-
-  function handlePreviewSettingsChange(): void {
-    if (!previewBuffer) return;
-
-    if (!isPreviewPlaying) {
-      renderPreviewProgress(currentOffset);
-      return;
-    }
-
-    const restartOffset = getCurrentBufferOffset();
-    stopPreviewSource();
-    currentOffset = restartOffset;
-
-    startPreviewAt(restartOffset).catch((error) => {
-      console.error("Preview restart error:", error);
-      setPlayButtonState(false);
-      renderPreviewProgress(currentOffset);
-    });
-  }
-
-  async function decodePreviewFile(file: File): Promise<void> {
-    const requestId = ++previewDecodeId;
-    const ctx = getAudioContext();
-
-    if (!ctx) {
-      updateProgress(0, "Ready to process", "Preview is not available in this browser.");
-      return;
-    }
-
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-      if (requestId !== previewDecodeId || selectedFile !== file) return;
-
-      previewBuffer = decodedBuffer;
-      currentOffset = 0;
-      previewStartOffset = 0;
-      setDecodedPreviewUI();
-    } catch (error) {
-      if (requestId !== previewDecodeId || selectedFile !== file) return;
-
-      console.error("Preview decode error:", error);
-      setErrorUI("Could not decode audio file.");
     }
   }
 
@@ -469,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Volta a interface para o estado inicial, sem arquivo selecionado.
   function resetFileUI(): void {
     clearProgressInterval();
-    resetPreviewEngine(true);
+    preview.reset(true);
 
     selectedFile = null;
     previewUrl = "";
@@ -496,8 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (removeFileBtn) removeFileBtn.disabled = false;
 
     resetDownloadData();
-    hidePlayButton();
-    if (audioProgressWrap) audioProgressWrap.classList.add("hidden");
+    preview.hideControls();
     setProcessingStatusVisible(true);
     resetProgressUI();
   }
@@ -514,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Preenche os dados do arquivo e libera a etapa de processamento.
   function showSelectedFile(file: File): void {
     clearProgressInterval();
-    resetPreviewEngine(true);
+    preview.reset(true);
 
     selectedFile = file;
     previewUrl = "";
@@ -541,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     resetDownloadData();
     setIdlePreviewUI("Preparing preview...", "Decoding your audio in this browser.");
-    decodePreviewFile(file).catch((error) => {
+    preview.decodeFile(file).catch((error) => {
       console.error("Preview decode error:", error);
       setErrorUI("Could not decode audio file.");
     });
@@ -550,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Estado usado enquanto o arquivo esta sendo enviado/processado.
   function setProcessingUI(): void {
     clearProgressInterval();
-    resetPreviewEngine(false);
+    preview.reset(false);
 
     if (confirmBtn) {
       confirmBtn.classList.add("hidden");
@@ -561,8 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (processCard) processCard.classList.remove("error");
 
     resetDownloadData();
-    hidePlayButton();
-    if (audioProgressWrap) audioProgressWrap.classList.add("hidden");
+    preview.hideControls();
     setProcessingStatusVisible(true);
     updateProgress(0, "Uploading audio...", "Sending your file to the server.");
   }
@@ -574,8 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (confirmBtn) confirmBtn.disabled = false;
     if (processCard) processCard.classList.remove("error");
 
-    hidePlayButton();
-    if (audioProgressWrap) audioProgressWrap.classList.add("hidden");
+    preview.hideControls();
     setProcessingStatusVisible(true);
 
     updateProgress(100, "Audio ready", "Upload complete. Your processed file is ready.");
@@ -584,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Estado de erro reaproveitado para validacao local e falhas do servidor.
   function setErrorUI(message: string): void {
     clearProgressInterval();
-    resetPreviewEngine(false);
+    preview.reset(false);
 
     if (confirmBtn) {
       confirmBtn.classList.remove("hidden");
@@ -599,8 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
       fileName.classList.add("error");
     }
 
-    hidePlayButton();
-    if (audioProgressWrap) audioProgressWrap.classList.add("hidden");
+    preview.hideControls();
     setProcessingStatusVisible(true);
     updateProgress(0, "Processing failed", "Try again with another file or speed value.");
   }
@@ -849,7 +573,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const value = parseFloat(speedRange.value);
       speedInput.value = formatSpeedValue(value);
       updatePresetActiveState(value);
-      handlePreviewSettingsChange();
+      preview.handleSettingsChange();
     });
 
     speedInput.addEventListener("input", () => {
@@ -874,7 +598,7 @@ document.addEventListener("DOMContentLoaded", () => {
       speedRange.value = String(value);
 
       updatePresetActiveState(value);
-      handlePreviewSettingsChange();
+      preview.handleSettingsChange();
     });
 
     speedInput.addEventListener("blur", () => {
@@ -882,12 +606,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (isNaN(value)) {
         setSpeedValue(speedRange.value);
-        handlePreviewSettingsChange();
+        preview.handleSettingsChange();
         return;
       }
 
       setSpeedValue(value);
-      handlePreviewSettingsChange();
+      preview.handleSettingsChange();
     });
 
     setSpeedValue(parseFloat(speedInput.value));
@@ -898,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
       button.addEventListener("click", () => {
         const presetSpeed = parseFloat(button.dataset.speed as string);
         setSpeedValue(presetSpeed);
-        handlePreviewSettingsChange();
+        preview.handleSettingsChange();
       });
     });
   }
@@ -1008,48 +732,6 @@ document.addEventListener("DOMContentLoaded", () => {
         resetFileUI();
       }
     });
-  }
-
-  // Preview local com Web Audio API antes do envio ao backend.
-  if (playBtn) {
-    playBtn.addEventListener("click", async () => {
-      if (!previewBuffer) return;
-
-      try {
-        if (isPreviewPlaying) {
-          pausePreview();
-        } else {
-          await startPreviewAt(currentOffset);
-        }
-      } catch (error) {
-        console.error("Preview playback error:", error);
-      }
-    });
-
-    // Clique na barra do preview pula para o ponto correspondente do audio.
-    if (audioProgressTrack) {
-      audioProgressTrack.addEventListener("click", (e) => {
-        if (!previewBuffer || !previewBuffer.duration) return;
-
-        const rect = audioProgressTrack.getBoundingClientRect();
-        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        const nextOffset = pct * previewBuffer.duration;
-
-        if (isPreviewPlaying) {
-          stopPreviewSource();
-          currentOffset = nextOffset;
-          startPreviewAt(nextOffset).catch((error) => {
-            console.error("Preview seek error:", error);
-            setPlayButtonState(false);
-            renderPreviewProgress(currentOffset);
-          });
-          return;
-        }
-
-        currentOffset = nextOffset;
-        renderPreviewProgress(currentOffset);
-      });
-    }
   }
 
   // Monta o FormData e dispara a conversao no backend.

@@ -135,7 +135,7 @@ npm run build
 npm start
 ```
 
-The TypeScript sources are `backend/server.ts` and `frontend/main.ts`. The build generates runtime JavaScript inside `backend/dist/`.
+The TypeScript sources are `backend/server.ts`, `frontend/main.ts`, and `frontend/preview.ts`. The build generates runtime JavaScript inside `backend/dist/`.
 
 ---
 
@@ -163,6 +163,7 @@ asetrate=44100*speed, aresample=44100, aecho (multi-reflection reverb), dynaudno
   index.html
   style.css
   main.ts
+  preview.ts
 /backend
   server.ts
   tsconfig.json
