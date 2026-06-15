@@ -20,7 +20,8 @@ const CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const OUTPUT_SAMPLE_RATE = 44100;
 const OUTPUT_CHANNELS = 2;
 const OUTPUT_AUDIO_BITRATE = "128k";
-const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_MB = 15;
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 interface FfmpegOptions {
   inputPath: string;
@@ -236,6 +237,11 @@ app.post("/convert", (req: Request, res: Response) => {
     if (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("Upload error:", message);
+
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: `File exceeds the ${MAX_UPLOAD_SIZE_MB} MB limit` });
+      }
+
       return res.status(400).json({ error: "File too large or invalid" });
     }
 

@@ -57,6 +57,7 @@ Users can select an audio file, customize playback speed and reverb intensity, p
 ### 📂 File Handling
 
 * Drag & drop support
+* 15 MB upload limit with immediate alert for oversized files
 * In-card file preview with play/pause controls
 * Interactive audio progress bar with click-to-seek
 * Live preview updates when speed or reverb sliders change
@@ -140,7 +141,7 @@ The TypeScript sources are `backend/server.ts` and `frontend/main.ts`. The build
 
 ## ⚙️ How It Works
 
-1. User selects an audio file
+1. User selects an audio file up to 15 MB
 2. The browser decodes it with the Web Audio API and shows an in-card preview
 3. Preview playback applies the selected speed and dry/wet reverb mix locally
 4. When the user clicks process, the file is sent to the backend (`/convert`)

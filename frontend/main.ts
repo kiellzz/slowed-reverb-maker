@@ -68,6 +68,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const UPLOAD_PROGRESS_SHARE = 55;
   const PROCESSING_START = 58;
   const PROCESSING_MAX = 96;
+  const MAX_UPLOAD_SIZE_MB = 15;
+  const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
   // Estado atual da tela e da ultima conversao feita pelo usuario.
   let selectedFile: File | null = null;
@@ -823,6 +825,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Valida o arquivo localmente antes de liberar a conversao.
   function handleSelectedFile(file: File | null): void {
     if (!file) {
+      resetFileUI();
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      alert(`File is too large. Maximum upload size is ${MAX_UPLOAD_SIZE_MB} MB.`);
       resetFileUI();
       return;
     }
