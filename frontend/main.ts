@@ -7,6 +7,25 @@ interface ConvertResponse {
   error?: string;
 }
 
+interface ConvertProgressEvent {
+  type: "progress";
+  percent: number;
+}
+
+interface ConvertCompleteEvent extends ConvertResponse {
+  type: "complete";
+  downloadUrl: string;
+  fileName: string;
+  previewUrl: string;
+}
+
+interface ConvertErrorEvent {
+  type: "error";
+  error?: string;
+}
+
+type ConvertStreamEvent = ConvertProgressEvent | ConvertCompleteEvent | ConvertErrorEvent;
+
 // Item salvo no historico local do navegador para re-download enquanto o arquivo existir.
 interface HistoryItem {
   name: string;
@@ -45,17 +64,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const processStatus = document.querySelector(".process-status") as HTMLElement | null;
   const progressTrack = document.querySelector(".progress-track") as HTMLElement | null;
 
-  // Divide a barra entre progresso real de upload e simulacao do processamento.
+  // Divide a barra entre progresso real de upload e progresso real do FFmpeg.
   const UPLOAD_PROGRESS_SHARE = 55;
   const PROCESSING_START = 58;
-  const PROCESSING_MAX = 96;
+  const PROCESSING_END = 99;
   const MAX_UPLOAD_SIZE_MB = 15;
   const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
   // Estado atual da tela e da ultima conversao feita pelo usuario.
   let selectedFile: File | null = null;
   let previewUrl = "";
-  let progressInterval: ReturnType<typeof setInterval> | null = null;
   let processedFileName = "";
   let dragDepth = 0;
 
@@ -63,13 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  }
-
-  function clearProgressInterval(): void {
-    if (progressInterval) {
-      clearInterval(progressInterval);
-      progressInterval = null;
-    }
   }
 
   function getPlaybackRate(): number {
@@ -157,6 +168,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (progressFill) progressFill.style.width = `${safePercent}%`;
   }
 
+  function updateProcessingProgress(processPercent: number): void {
+    const safeProcessPercent = Math.max(0, Math.min(100, processPercent));
+    const totalPercent =
+      PROCESSING_START + (safeProcessPercent / 100) * (PROCESSING_END - PROCESSING_START);
+    const roundedTotalPercent = Math.max(PROCESSING_START, Math.min(PROCESSING_END, Math.round(totalPercent)));
+    const detail =
+      safeProcessPercent >= 100
+        ? "Preparing your download."
+        : `${roundedTotalPercent}% complete`;
+
+    updateProgress(totalPercent, "Processing audio...", detail);
+  }
+
   function resetProgressUI(): void {
     updateProgress(0, "Ready to process", "Upload starts when you click process.");
   }
@@ -196,7 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Volta a interface para o estado inicial, sem arquivo selecionado.
   function resetFileUI(): void {
-    clearProgressInterval();
     preview.reset(true);
 
     selectedFile = null;
@@ -240,7 +263,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Preenche os dados do arquivo e libera a etapa de processamento.
   function showSelectedFile(file: File): void {
-    clearProgressInterval();
     preview.reset(true);
 
     selectedFile = file;
@@ -276,7 +298,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Estado usado enquanto o arquivo esta sendo enviado/processado.
   function setProcessingUI(): void {
-    clearProgressInterval();
     preview.reset(false);
 
     if (confirmBtn) {
@@ -308,7 +329,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Estado de erro reaproveitado para validacao local e falhas do servidor.
   function setErrorUI(message: string): void {
-    clearProgressInterval();
     preview.reset(false);
 
     if (confirmBtn) {
@@ -329,32 +349,67 @@ document.addEventListener("DOMContentLoaded", () => {
     updateProgress(0, "Processing failed", "Try again with another file or speed value.");
   }
 
-  // Simula a fase de processamento depois do upload real para manter feedback continuo.
-  function startProcessingSimulation(startPercent = PROCESSING_START): void {
-    let currentPercent = startPercent;
-
-    clearProgressInterval();
-    updateProgress(currentPercent, "Processing audio...", "Finalizing your track.");
-
-    progressInterval = setInterval(() => {
-      if (currentPercent >= PROCESSING_MAX) return;
-
-      const remaining = PROCESSING_MAX - currentPercent;
-      const step = Math.max(1, remaining * (0.12 + Math.random() * 0.08));
-      currentPercent = Math.min(PROCESSING_MAX, currentPercent + step);
-
-      updateProgress(currentPercent, "Processing audio...", "Finalizing your track.");
-    }, 280);
-  }
-
   // Usa XMLHttpRequest porque fetch nao expoe progresso de upload de forma simples.
   function uploadAndConvertAudio(formData: FormData): Promise<ConvertResponse> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       let processingStarted = false;
+      let responseOffset = 0;
+      let responseBuffer = "";
+      let finalResponse: ConvertResponse | null = null;
+      let streamError = "";
 
       xhr.open("POST", "/convert");
-      xhr.responseType = "json";
+
+      function markProcessingStarted(): void {
+        if (processingStarted) return;
+
+        processingStarted = true;
+        updateProcessingProgress(0);
+      }
+
+      function handleStreamLine(line: string): void {
+        if (!line) return;
+
+        const eventData = tryParseJson<ConvertStreamEvent>(line);
+        if (!eventData || !eventData.type) return;
+
+        switch (eventData.type) {
+          case "progress":
+            updateProcessingProgress(eventData.percent);
+            break;
+
+          case "complete":
+            finalResponse = eventData;
+            updateProgress(PROCESSING_END, "Preparing download...", "Your processed file is almost ready.");
+            break;
+
+          case "error":
+            streamError = eventData.error || "Server error";
+            break;
+        }
+      }
+
+      function readStreamEvents(includeRemainder = false): void {
+        const responseText = xhr.responseText || "";
+        const chunk = responseText.slice(responseOffset);
+        responseOffset = responseText.length;
+        responseBuffer += chunk;
+
+        let newlineIndex = responseBuffer.indexOf("\n");
+
+        while (newlineIndex !== -1) {
+          const line = responseBuffer.slice(0, newlineIndex).trim();
+          responseBuffer = responseBuffer.slice(newlineIndex + 1);
+          handleStreamLine(line);
+          newlineIndex = responseBuffer.indexOf("\n");
+        }
+
+        if (includeRemainder && responseBuffer.trim()) {
+          handleStreamLine(responseBuffer.trim());
+          responseBuffer = "";
+        }
+      }
 
       xhr.upload.addEventListener("loadstart", () => {
         updateProgress(2, "Uploading audio...", "Sending your file to the server.");
@@ -383,21 +438,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Ao terminar o upload, a barra passa para a etapa de processamento.
       xhr.upload.addEventListener("load", () => {
-        processingStarted = true;
-        startProcessingSimulation(PROCESSING_START);
+        markProcessingStarted();
+      });
+
+      xhr.addEventListener("progress", () => {
+        markProcessingStarted();
+        readStreamEvents();
       });
 
       xhr.addEventListener("load", () => {
-        clearProgressInterval();
+        readStreamEvents(true);
 
-        let responseData: ConvertResponse | null = null;
-        if (xhr.responseType === "json") {
-          responseData = xhr.response as ConvertResponse | null;
-        } else {
-          responseData = tryParseJson(xhr.responseText);
-        }
+        const responseData = finalResponse || tryParseJson<ConvertResponse>(xhr.responseText);
 
         if (xhr.status >= 200 && xhr.status < 300) {
+          if (streamError) {
+            reject(new Error(streamError));
+            return;
+          }
+
           resolve(responseData || {});
           return;
         }
@@ -407,25 +466,25 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       xhr.addEventListener("error", () => {
-        clearProgressInterval();
         reject(new Error("Network error"));
       });
 
       xhr.addEventListener("timeout", () => {
-        clearProgressInterval();
         reject(new Error("Request timed out"));
       });
 
       xhr.addEventListener("abort", () => {
-        clearProgressInterval();
         reject(new Error("Request aborted"));
       });
 
-      // Garante que a simulacao comece mesmo se o evento de upload variar por browser.
+      // Garante que o estado visual mude mesmo se o evento de upload variar por browser.
       xhr.addEventListener("readystatechange", () => {
-        if (xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED && !processingStarted) {
-          processingStarted = true;
-          startProcessingSimulation(PROCESSING_START);
+        if (
+          xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED &&
+          xhr.status >= 200 &&
+          xhr.status < 300
+        ) {
+          markProcessingStarted();
         }
       });
 
@@ -433,11 +492,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function tryParseJson(value: unknown): ConvertResponse | null {
+  function tryParseJson<T>(value: unknown): T | null {
     if (!value || typeof value !== "string") return null;
 
     try {
-      return JSON.parse(value) as ConvertResponse;
+      return JSON.parse(value) as T;
     } catch {
       return null;
     }

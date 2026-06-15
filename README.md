@@ -26,7 +26,7 @@ This project was built to go beyond a simple audio converter, focusing on:
 * Real-time feedback
 * Smooth interactions
 
-Users can select an audio file, customize playback speed and reverb intensity, preview the effect locally before uploading, process it on the backend, and download the processed version.
+Users can upload an audio file, customize playback speed and reverb intensity, preview the result, and download the processed version.
 
 ---
 
@@ -36,8 +36,6 @@ Users can select an audio file, customize playback speed and reverb intensity, p
 
 * Adjustable speed (0.5x – 2.0x)
 * Adjustable reverb intensity (0 – 100%)
-* Local Web Audio API preview before upload
-* Synthetic stereo impulse response for preview reverb
 * Slowed + reverb effect via FFmpeg
 * Dynamic audio normalization
 * Output ready for download
@@ -57,10 +55,7 @@ Users can select an audio file, customize playback speed and reverb intensity, p
 ### 📂 File Handling
 
 * Drag & drop support
-* 15 MB upload limit with immediate alert for oversized files
-* In-card file preview with play/pause controls
-* Interactive audio progress bar with click-to-seek
-* Live preview updates when speed or reverb sliders change
+* File preview with interactive audio progress bar (click to seek)
 * File metadata display (name + size)
 * Remove file with cleanup on backend
 
@@ -69,13 +64,8 @@ Users can select an audio file, customize playback speed and reverb intensity, p
 ### 📊 Smart Progress System
 
 * Real upload progress (via XMLHttpRequest)
-* Simulated processing stage for better UX
-* Status states:
-  * Preparing local preview
-  * Preview ready
-  * Uploading...
-  * Processing...
-  * Finalizing...
+* Real FFmpeg processing progress streamed from the backend
+* Uses NDJSON streaming on `/convert` without adding new dependencies
 * Smooth animated progress bar
 
 ---
@@ -115,44 +105,34 @@ Users can select an audio file, customize playback speed and reverb intensity, p
 ### Deployment
 * Render
 
-Render settings:
-
-```text
-Root Directory: backend
-Build Command: npm ci --include=dev && npm run build
-Pre-Deploy Command: leave empty
-Start Command: npm start
-```
-
 ---
 
 ## Local Development
 
 ```bash
 cd backend
-npm ci
+npm install
 npm run build
 npm start
 ```
 
-The TypeScript sources are `backend/server.ts`, `frontend/main.ts`, and `frontend/preview.ts`. The build generates runtime JavaScript inside `backend/dist/`.
+The TypeScript sources are `backend/server.ts` and `frontend/main.ts`. The build generates runtime JavaScript inside `backend/dist/`.
 
 ---
 
 ## ⚙️ How It Works
 
-1. User selects an audio file up to 15 MB
-2. The browser decodes it with the Web Audio API and shows an in-card preview
-3. Preview playback applies the selected speed and dry/wet reverb mix locally
-4. When the user clicks process, the file is sent to the backend (`/convert`)
-5. FFmpeg processes the audio with filters:
+1. User uploads an audio file
+2. File is sent to the backend (`/convert`)
+3. FFmpeg processes the audio with filters:
 ```
 asetrate=44100*speed, aresample=44100, aecho (multi-reflection reverb), dynaudnorm
 ```
-6. Processed file is stored temporarily
-7. User can:
+4. Processed file is stored temporarily
+5. User can:
+   * preview audio with progress bar
    * download result
-8. Files are automatically deleted after some time
+6. Files are automatically deleted after some time
 
 ---
 
@@ -169,8 +149,6 @@ asetrate=44100*speed, aresample=44100, aecho (multi-reflection reverb), dynaudno
   tsconfig.json
   /uploads
   /outputs
-/media
-  media.mp4
 ```
 
 ---
