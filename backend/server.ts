@@ -28,7 +28,13 @@ interface FfmpegOptions {
   outputPath: string;
   speed: number;
   reverbAmount: number;
+  onProgress?: (percent: number) => void;
 }
+
+type ConvertStreamEvent =
+  | { type: "progress"; percent: number }
+  | { type: "complete"; fileName: string; downloadUrl: string; previewUrl: string }
+  | { type: "error"; error: string };
 
 // Middleware simples de CORS para aceitar chamadas do frontend e preflight OPTIONS.
 app.use((req, res, next) => {
@@ -132,8 +138,33 @@ function sanitizeBaseFileName(name: string): string {
   return name.replace(/[^\w\-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "audio";
 }
 
+function parseTimestampToSeconds(value: string): number | null {
+  const match = value.trim().match(/^(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/);
+
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+
+  if ([hours, minutes, seconds].some(Number.isNaN)) return null;
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function parseDurationFromFfmpegLog(value: string): number | null {
+  const match = value.match(/Duration:\s*(\d+:\d{2}:\d{2}(?:\.\d+)?)/);
+  return match ? parseTimestampToSeconds(match[1]) : null;
+}
+
+function writeConvertEvent(res: Response, event: ConvertStreamEvent): void {
+  if (res.writableEnded) return;
+
+  res.write(`${JSON.stringify(event)}\n`);
+}
+
 // Executa o FFmpeg em processo separado para aplicar velocidade e reverb.
-function runFfmpeg({ inputPath, outputPath, speed, reverbAmount }: FfmpegOptions): Promise<void> {
+function runFfmpeg({ inputPath, outputPath, speed, reverbAmount, onProgress }: FfmpegOptions): Promise<void> {
   return new Promise((resolve, reject) => {
     const ffmpegPath = process.env.FFMPEG_PATH || "ffmpeg";
 
@@ -165,6 +196,9 @@ function runFfmpeg({ inputPath, outputPath, speed, reverbAmount }: FfmpegOptions
 
     const args = [
       "-y",
+      "-nostats",
+      "-progress",
+      "pipe:1",
       "-i",
       inputPath,
       "-vn",
@@ -188,9 +222,68 @@ function runFfmpeg({ inputPath, outputPath, speed, reverbAmount }: FfmpegOptions
     });
 
     let stderr = "";
+    let stderrDurationBuffer = "";
+    let stdoutBuffer = "";
+    let inputDurationSeconds: number | null = null;
+    let lastProgressPercent = -1;
+    let lastProgressAt = 0;
+
+    const emitProgressFromOutputTime = (outputTimeSeconds: number): void => {
+      if (!onProgress || !inputDurationSeconds || inputDurationSeconds <= 0) return;
+
+      const estimatedOutputDuration = Math.max(0.1, inputDurationSeconds / speed);
+      const percent = Math.max(0, Math.min(99, (outputTimeSeconds / estimatedOutputDuration) * 100));
+      const now = Date.now();
+      const shouldEmit =
+        percent >= 99 ||
+        percent - lastProgressPercent >= 0.75 ||
+        now - lastProgressAt >= 700;
+
+      if (!shouldEmit) return;
+
+      lastProgressPercent = percent;
+      lastProgressAt = now;
+      onProgress(percent);
+    };
+
+    const handleProgressLine = (line: string): void => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) return;
+
+      const separatorIndex = trimmedLine.indexOf("=");
+      if (separatorIndex === -1) return;
+
+      const key = trimmedLine.slice(0, separatorIndex);
+      const value = trimmedLine.slice(separatorIndex + 1);
+
+      if (key === "out_time") {
+        const outputTimeSeconds = parseTimestampToSeconds(value);
+        if (outputTimeSeconds !== null) emitProgressFromOutputTime(outputTimeSeconds);
+        return;
+      }
+
+      if (key === "progress" && value === "end") {
+        onProgress?.(100);
+      }
+    };
+
+    ffmpeg.stdout.on("data", (chunk: Buffer) => {
+      stdoutBuffer += chunk.toString();
+
+      const lines = stdoutBuffer.split(/\r?\n/);
+      stdoutBuffer = lines.pop() || "";
+
+      lines.forEach(handleProgressLine);
+    });
 
     ffmpeg.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      stderrDurationBuffer = (stderrDurationBuffer + text).slice(-4000);
+
+      if (inputDurationSeconds === null) {
+        inputDurationSeconds = parseDurationFromFfmpegLog(stderrDurationBuffer);
+      }
 
       // Guarda apenas o final do log para mensagens de erro menores e relevantes.
       if (stderr.length > 8000) {
@@ -204,6 +297,7 @@ function runFfmpeg({ inputPath, outputPath, speed, reverbAmount }: FfmpegOptions
 
     ffmpeg.on("close", (code) => {
       if (code === 0) {
+        onProgress?.(100);
         resolve();
         return;
       }
@@ -270,23 +364,51 @@ app.post("/convert", (req: Request, res: Response) => {
     if (reverbAmount < 0) reverbAmount = 0;
     if (reverbAmount > 100) reverbAmount = 100;
 
+    let streamStarted = false;
+
     try {
-      await runFfmpeg({ inputPath, outputPath, speed, reverbAmount });
+      streamStarted = true;
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      writeConvertEvent(res, { type: "progress", percent: 0 });
+
+      await runFfmpeg({
+        inputPath,
+        outputPath,
+        speed,
+        reverbAmount,
+        onProgress: (percent) => {
+          writeConvertEvent(res, { type: "progress", percent });
+        }
+      });
 
       deleteFileIfExists(inputPath);
       scheduleFileDeletion(outputPath);
 
-      res.json({
+      writeConvertEvent(res, {
+        type: "complete",
         fileName: outputName,
         downloadUrl: `/download/${outputName}`,
         previewUrl: `/preview/${outputName}`
       });
+      res.end();
     } catch (error) {
       deleteFileIfExists(inputPath);
       deleteFileIfExists(outputPath);
 
       const message = error instanceof Error ? error.message : String(error);
       console.error("FFmpeg error:", message);
+
+      if (streamStarted) {
+        writeConvertEvent(res, { type: "error", error: message });
+        res.end();
+        return;
+      }
+
       res.status(500).json({ error: message });
     }
   });
